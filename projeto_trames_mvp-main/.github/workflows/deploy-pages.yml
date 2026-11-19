@@ -1,0 +1,48 @@
+name: Publicar Trames no GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v4
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Preparar Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.3'
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+      - name: Testar
+        run: bun run test
+      - name: Gerar site estático
+        run: bun run build:pages
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+      - name: Enviar arquivos estáticos
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist-pages
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
